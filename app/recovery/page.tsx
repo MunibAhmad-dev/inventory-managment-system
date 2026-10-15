@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { getRecoveries, saveRecovery, deleteRecovery, getCustomers, generateId, getCurrentUser, getCustomerBalance } from '@/lib/storage';
@@ -7,7 +7,15 @@ import type { Recovery, Customer } from '@/lib/types';
 
 function fmt(n: number) { return 'Rs. ' + n.toLocaleString('en-PK', { maximumFractionDigits: 0 }); }
 
-export default function RecoveryPage() {
+function getLocalDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function RecoveryContent() {
   const searchParams = useSearchParams();
   const preCustomer = searchParams.get('customer') || '';
 
@@ -16,13 +24,23 @@ export default function RecoveryPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [customerId, setCustomerId] = useState(preCustomer);
   const [recoveryReceived, setRecoveryReceived] = useState(0);
   const [method, setMethod] = useState<'cash' | 'bank' | 'easypaisa' | 'other'>('cash');
   const [notes, setNotes] = useState('');
 
-  useEffect(() => { load(); if (preCustomer) setShowForm(true); }, [preCustomer]);
+  useEffect(() => {
+    load();
+    if (preCustomer) {
+      setCustomerId(preCustomer);
+      setShowForm(true);
+    }
+  }, [preCustomer]);
+
+  useEffect(() => {
+    setDate(getLocalDateString());
+  }, []);
   const load = () => { setRecoveries(getRecoveries().sort((a, b) => b.date.localeCompare(a.date))); setCustomers(getCustomers()); };
 
   const currentBalance = customerId ? getCustomerBalance(customerId) : 0;
@@ -47,7 +65,7 @@ export default function RecoveryPage() {
     setCustomerId('');
     setRecoveryReceived(0);
     setNotes('');
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(getLocalDateString());
   };
 
   const filtered = recoveries.filter(r => {
@@ -178,5 +196,19 @@ export default function RecoveryPage() {
         </div>
       )}
     </AppLayout>
+  );
+}
+
+export default function RecoveryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-6 text-center text-slate-500">
+          Loading recovery records...
+        </div>
+      }
+    >
+      <RecoveryContent />
+    </Suspense>
   );
 }

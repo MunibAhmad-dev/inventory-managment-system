@@ -11,16 +11,31 @@ const CATEGORIES = ['Diesel', 'Loading/Unloading', 'Salary', 'Rent', 'Electricit
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [filterMonth, setFilterMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [filterMonth, setFilterMonth] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState('');
   const [paidBy, setPaidBy] = useState('');
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+
+    // Initialize date-dependent state in the browser after mount to avoid
+    // evaluating the current date during Next.js prerendering.
+    const today = new Date();
+    const localDate = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    setFilterMonth(localDate.slice(0, 7));
+    setDate(localDate);
+  }, []);
+
   const load = () => setExpenses(getExpenses().sort((a, b) => b.date.localeCompare(a.date)));
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -33,7 +48,12 @@ export default function ExpensesPage() {
     saveExpense(expense);
     load();
     setShowForm(false);
-    setDate(new Date().toISOString().split('T')[0]);
+    const today = new Date();
+    setDate([
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-'));
     setCategory(CATEGORIES[0]);
     setAmount(0);
     setDescription('');

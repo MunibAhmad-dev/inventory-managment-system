@@ -1,13 +1,21 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { getSales, saveSale, deleteSale, getCustomers, getCompanies, getProducts, generateId, getNextInvoiceNumber, getCurrentUser, getCustomerBalance } from '@/lib/storage';
 import type { Sale, SaleItem, Customer, Company, Product } from '@/lib/types';
 
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function fmt(n: number) { return 'Rs. ' + n.toLocaleString('en-PK', { maximumFractionDigits: 0 }); }
 
-export default function SalesPage() {
+function SalesContent() {
   const searchParams = useSearchParams();
   const preCustomer = searchParams.get('customer') || '';
 
@@ -19,13 +27,20 @@ export default function SalesPage() {
   const [search, setSearch] = useState('');
 
   // Form state
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [customerId, setCustomerId] = useState(preCustomer);
   const [paymentType, setPaymentType] = useState<'cash' | 'credit'>('credit');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<(SaleItem & { tempId: string })[]>([]);
 
-  useEffect(() => { load(); if (preCustomer) setShowForm(true); }, [preCustomer]);
+  useEffect(() => {
+    load();
+    setDate(getLocalDateString());
+    if (preCustomer) {
+      setCustomerId(preCustomer);
+      setShowForm(true);
+    }
+  }, [preCustomer]);
   const load = () => { setSales(getSales().sort((a, b) => b.date.localeCompare(a.date))); setCustomers(getCustomers()); setCompanies(getCompanies()); setProducts(getProducts()); };
 
   const addItem = () => setItems(prev => [...prev, {
@@ -75,7 +90,7 @@ export default function SalesPage() {
     setCustomerId('');
     setNotes('');
     setPaymentType('credit');
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(getLocalDateString());
   };
 
   const filteredSales = sales.filter(s => {
@@ -256,5 +271,13 @@ export default function SalesPage() {
         </div>
       )}
     </AppLayout>
+  );
+}
+
+export default function SalesPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-slate-500">Loading sales...</div>}>
+      <SalesContent />
+    </Suspense>
   );
 }

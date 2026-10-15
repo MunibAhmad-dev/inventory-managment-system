@@ -4,6 +4,14 @@ import AppLayout from '@/components/AppLayout';
 import { getPurchases, savePurchase, deletePurchase, getCompanies, getProducts, generateId, getCurrentUser } from '@/lib/storage';
 import type { Purchase, PurchaseItem, Company, Product } from '@/lib/types';
 
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function fmt(n: number) { return 'Rs. ' + n.toLocaleString('en-PK', { maximumFractionDigits: 0 }); }
 
 export default function PurchasesPage() {
@@ -11,12 +19,15 @@ export default function PurchasesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [companyId, setCompanyId] = useState('');
   const [reference, setReference] = useState('');
   const [items, setItems] = useState<(PurchaseItem & { tempId: string })[]>([]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    setDate(getLocalDateString());
+  }, []);
   const load = () => { setPurchases(getPurchases().sort((a, b) => b.date.localeCompare(a.date))); setCompanies(getCompanies()); setProducts(getProducts()); };
 
   const addItem = () => setItems(prev => [...prev, { tempId: generateId(), productId: '', bundles: 1, purchaseRate: 0, totalCost: 0 }]);
@@ -57,7 +68,7 @@ export default function PurchasesPage() {
     setItems([]);
     setCompanyId('');
     setReference('');
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(getLocalDateString());
   };
 
   return (

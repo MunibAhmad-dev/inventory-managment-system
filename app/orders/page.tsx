@@ -1,11 +1,19 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { getOrders, saveOrder, deleteOrder, getCustomers, getCompanies, getProducts, generateId, getCurrentUser, saveSale, getNextInvoiceNumber } from '@/lib/storage';
 import type { Order, Customer, Company, Product, OrderStatus } from '@/lib/types';
 
 function fmt(n: number) { return 'Rs. ' + n.toLocaleString('en-PK', { maximumFractionDigits: 0 }); }
+
+function todayLocalDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 const statusColors: Record<OrderStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -14,7 +22,7 @@ const statusColors: Record<OrderStatus, string> = {
   cancelled: 'bg-red-100 text-red-700',
 };
 
-export default function OrdersPage() {
+function OrdersContent() {
   const searchParams = useSearchParams();
   const preCustomer = searchParams.get('customer') || '';
 
@@ -26,7 +34,7 @@ export default function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [search, setSearch] = useState('');
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [customerId, setCustomerId] = useState(preCustomer);
   const [companyId, setCompanyId] = useState('');
   const [productId, setProductId] = useState('');
@@ -35,7 +43,18 @@ export default function OrdersPage() {
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
   const [remarks, setRemarks] = useState('');
 
-  useEffect(() => { load(); if (preCustomer) setShowForm(true); }, [preCustomer]);
+  useEffect(() => {
+    load();
+    if (preCustomer) {
+      setCustomerId(preCustomer);
+      setShowForm(true);
+    }
+  }, [preCustomer]);
+
+  // Initialize the date in the browser after mount, not during prerendering.
+  useEffect(() => {
+    setDate(todayLocalDate());
+  }, []);
   const load = () => { setOrders(getOrders().sort((a, b) => b.date.localeCompare(a.date))); setCustomers(getCustomers()); setCompanies(getCompanies()); setProducts(getProducts()); };
 
   const companyProducts = products.filter(p => p.companyId === companyId && p.active);
@@ -57,7 +76,7 @@ export default function OrdersPage() {
 
   const resetForm = () => {
     setCustomerId(preCustomer); setCompanyId(''); setProductId(''); setBundles(1); setRate(0); setExpectedDeliveryDate(''); setRemarks('');
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(todayLocalDate());
   };
 
   const updateStatus = (id: string, status: OrderStatus) => {
@@ -72,7 +91,7 @@ export default function OrdersPage() {
     if (!product) { alert('Product not found'); return; }
     const user = getCurrentUser();
     const sale = {
-      id: generateId(), invoiceNumber: getNextInvoiceNumber(), date: new Date().toISOString().split('T')[0],
+      id: generateId(), invoiceNumber: getNextInvoiceNumber(), date: todayLocalDate(),
       customerId: order.customerId,
       items: [{
         companyId: order.companyId, productId: order.productId, bundles: order.bundles,
@@ -251,5 +270,19 @@ export default function OrdersPage() {
         </div>
       )}
     </AppLayout>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-6 text-center text-slate-500">
+          Loading orders...
+        </div>
+      }
+    >
+      <OrdersContent />
+    </Suspense>
   );
 }

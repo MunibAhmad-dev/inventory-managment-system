@@ -4,6 +4,14 @@ import AppLayout from '@/components/AppLayout';
 import { getSales, getRecoveries, getCustomers, getProducts, getCompanies, getExpenses, getOrders, getPurchases, getStockLevel, getCustomerBalance } from '@/lib/storage';
 import type { Sale, Recovery, Customer, Product, Company, Expense, Order, Purchase } from '@/lib/types';
 
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function fmt(n: number) { return 'Rs. ' + n.toLocaleString('en-PK', { maximumFractionDigits: 0 }); }
 
 type ReportType = 'daily-sales' | 'weekly-sales' | 'monthly-sales' | 'daily-recovery' | 'weekly-recovery' |
@@ -12,8 +20,8 @@ type ReportType = 'daily-sales' | 'weekly-sales' | 'monthly-sales' | 'daily-reco
 
 export default function ReportsPage() {
   const [report, setReport] = useState<ReportType>('daily-sales');
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState('');
 
   const [sales, setSales] = useState<Sale[]>([]);
@@ -29,6 +37,9 @@ export default function ReportsPage() {
     setSales(getSales()); setRecoveries(getRecoveries()); setCustomers(getCustomers());
     setProducts(getProducts()); setCompanies(getCompanies()); setExpenses(getExpenses());
     setOrders(getOrders()); setPurchases(getPurchases());
+    const today = getLocalDateString();
+    setStartDate(today);
+    setEndDate(today);
   }, []);
 
   const fSales = sales.filter(s => s.date >= startDate && s.date <= endDate);
@@ -104,17 +115,17 @@ export default function ReportsPage() {
               </div>
             )}
             <div className="flex gap-2 ml-auto">
-              <button onClick={() => { const t = new Date().toISOString().split('T')[0]; setStartDate(t); setEndDate(t); }}
+              <button onClick={() => { const t = getLocalDateString(); setStartDate(t); setEndDate(t); }}
                 className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">Today</button>
               <button onClick={() => {
                 const d = new Date(); d.setDate(d.getDate() - d.getDay());
-                setStartDate(d.toISOString().split('T')[0]);
-                setEndDate(new Date().toISOString().split('T')[0]);
+                setStartDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                setEndDate(getLocalDateString());
               }} className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">This Week</button>
               <button onClick={() => {
                 const d = new Date();
                 setStartDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
-                setEndDate(new Date().toISOString().split('T')[0]);
+                setEndDate(getLocalDateString());
               }} className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">This Month</button>
             </div>
           </div>

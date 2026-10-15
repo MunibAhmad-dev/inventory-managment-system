@@ -4,6 +4,14 @@ import AppLayout from '@/components/AppLayout';
 import { getProducts, getCompanies, getStockLevel, saveStockAdjustment, getStockAdjustments, generateId, getCurrentUser, getPurchases, getSales } from '@/lib/storage';
 import type { Product, Company, StockAdjustment } from '@/lib/types';
 
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function StockPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -14,10 +22,13 @@ export default function StockPage() {
   const [adjType, setAdjType] = useState<'increase' | 'decrease'>('increase');
   const [adjQty, setAdjQty] = useState(1);
   const [adjReason, setAdjReason] = useState('');
-  const [adjDate, setAdjDate] = useState(new Date().toISOString().split('T')[0]);
+  const [adjDate, setAdjDate] = useState('');
   const [tab, setTab] = useState<'stock' | 'adjustments'>('stock');
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    setAdjDate(getLocalDateString());
+  }, []);
   const load = () => { setProducts(getProducts()); setCompanies(getCompanies()); setAdjustments(getStockAdjustments().sort((a, b) => b.date.localeCompare(a.date))); };
 
   const handleAdjustment = (e: React.FormEvent) => {
