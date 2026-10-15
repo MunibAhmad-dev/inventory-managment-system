@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { getCustomers, getSales, getRecoveries, getOrders, getCustomerBalance, getProducts, getCompanies } from '@/lib/storage';
@@ -8,7 +8,7 @@ import Link from 'next/link';
 
 function fmt(n: number) { return 'Rs. ' + n.toLocaleString('en-PK', { maximumFractionDigits: 0 }); }
 
-export default function CustomerDetailPage() {
+function CustomerDetailContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -256,5 +256,19 @@ export default function CustomerDetailPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function CustomerDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-6 text-center text-slate-500">
+          Loading customer details...
+        </div>
+      }
+    >
+      <CustomerDetailContent />
+    </Suspense>
   );
 }
